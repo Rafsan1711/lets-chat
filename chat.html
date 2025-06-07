@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WhatsApp Style Realtime Chat</title>
+  <style>
+    /* Reset & base */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background: #e5ddd5; display: flex; height: 100vh; }/* Chat container */
+.chat-container { flex: 1; display: flex; flex-direction: column; max-width: 600px; margin: auto; background: #fff; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden; }
+
+/* Header */
+.chat-header { background: #075e54; color: #fff; padding: 16px; display: flex; align-items: center; }
+.chat-header .title { flex: 1; font-size: 1.2rem; font-weight: 500; }
+
+/* Messages area */
+.messages { flex: 1; padding: 16px; overflow-y: auto; scroll-behavior: smooth; }
+.message { margin-bottom: 12px; display: flex; }
+.message.you { justify-content: flex-end; }
+.bubble { max-width: 70%; padding: 10px 14px; border-radius: 18px; position: relative; line-height: 1.4; }
+.message.you .bubble { background: #dcf8c6; border-bottom-right-radius: 4px; }
+.message.friend .bubble { background: #fff; border-bottom-left-radius: 4px; }
+.timestamp { font-size: 0.7rem; color: #999; margin-top: 4px; }
+
+/* Input area */
+.input-area { display: flex; align-items: center; padding: 12px; background: #f0f0f0; }
+.input-area input { flex: 1; padding: 10px; border: none; border-radius: 20px; outline: none; font-size: 1rem; }
+.input-area button { background: #075e54; border: none; color: #fff; padding: 10px 16px; margin-left: 8px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; }
+@media(max-width: 600px) {
+  .chat-container { margin: 8px; border-radius: 0; }
+}
+
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <header class="chat-header">
+      <div class="title">My Chat</div>
+    </header>
+    <div class="messages" id="messages"></div>
+    <div class="input-area">
+      <input type="text" id="msgInput" placeholder="Type a message" />
+      <button id="sendBtn">&#9658;</button>
+    </div>
+  </div>  <!-- Firebase SDK -->  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-app-compat.js"></script>  <script src="https://www.gstatic.com/firebasejs/9.15.0/firebase-database-compat.js"></script>  <script>
+    // Initialize Firebase
+    const firebaseConfig = {
+      apiKey:    "AIzaSyAergJXFvSJ02ssEknNHIy3z98URLgACh8",
+      authDomain:"chess-web-78351.firebaseapp.com",
+      databaseURL:"https://chess-web-78351-default-rtdb.asia-southeast1.firebasedatabase.app",
+      projectId: "chess-web-78351",
+      storageBucket:"chess-web-78351.appspot.com",
+      messagingSenderId:"148362297683",
+      appId:     "1:148362297683:web:9c1f7f8e7b561aad8ba1a6"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('msgInput');
+    const sendBtn = document.getElementById('sendBtn');
+    const userId = 'user_' + Date.now(); // simple UID
+
+    // Send a message
+    sendBtn.addEventListener('click', () => {
+      const text = inputEl.value.trim();
+      if (!text) return;
+      const timestamp = Date.now();
+      db.ref('messages/' + timestamp).set({ user: userId, text, ts: timestamp });
+      inputEl.value = '';
+    });
+
+    // Listen for new messages
+    db.ref('messages').on('value', snapshot => {
+      const data = snapshot.val() || {};
+      const items = Object.values(data).sort((a,b)=>a.ts-b.ts);
+      messagesEl.innerHTML = '';
+      items.forEach(msg => {
+        const msgEl = document.createElement('div');
+        msgEl.classList.add('message', msg.user===userId ? 'you' : 'friend');
+        msgEl.innerHTML = `<div class="bubble">${msg.text}<div class="timestamp">${new Date(msg.ts).toLocaleTimeString()}</div></div>`;
+        messagesEl.appendChild(msgEl);
+      });
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    });
+
+    // Send on Enter
+    inputEl.addEventListener('keypress', e => {
+      if (e.key === 'Enter') sendBtn.click();
+    });
+  </script></body>
+</html>
